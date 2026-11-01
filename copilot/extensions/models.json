@@ -1,0 +1,13 @@
+{
+    "reasoner": "claude-opus-5.5",
+    "verifier": "gpt-6.1-sol",
+    "adversaries": [
+        "claude-opus-5.5",
+        "gpt-6.1-sol",
+        "gemini-4-argon"
+    ],
+    "builders": [
+        "claude-sonnet-5.5",
+        "gpt-6.1-sol"
+    ]
+}

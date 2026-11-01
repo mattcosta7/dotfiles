@@ -2,18 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { joinSession } from "@github/copilot-sdk/extension";
-
-// Irreversible or outward-facing commands always need a human, even when shell access is allowed.
-const CONFIRM = [
-    [/\bgit\s+push\b[^\n;&|]*(\s--force(-with-lease)?\b|\s-f\b|\s\+\S)/, "force-push"],
-    [/\bgit\s+push\b[^\n;&|]*\s(origin\s+)?(main|master)\b/, "push to the default branch"],
-    [/\bgh\s+pr\s+merge\b/, "merging a pull request"],
-    [/\bgh\s+(repo|release)\s+delete\b/, "deleting a repository or release"],
-    [/\bgit\s+reset\s+--hard\b/, "discarding local changes"],
-    [/\bgit\s+clean\s+-[a-z]*f/, "deleting untracked files"],
-    [/\bgit\s+branch\s+-D\b/, "force-deleting a branch"],
-    [/\brm\s+-[a-z]*r[a-z]*f|\brm\s+-[a-z]*f[a-z]*r/, "recursive delete"],
-];
+import { needsConfirmation } from "./patterns.mjs";
 
 const EVIDENCE_AGENTS = new Set(["Builder", "Tester"]);
 const nudged = new Set();
@@ -55,11 +44,11 @@ await joinSession({
         onPreToolUse: (input) => {
             const command = shellCommand(input);
             if (!command) return;
-            const hit = CONFIRM.find(([pattern]) => pattern.test(command));
-            if (!hit) return;
+            const reason = needsConfirmation(command);
+            if (!reason) return;
             return {
                 permissionDecision: "ask",
-                permissionDecisionReason: `factory-hooks: ${hit[1]} needs explicit confirmation.`,
+                permissionDecisionReason: `factory-hooks: ${reason} needs explicit confirmation.`,
             };
         },
         onSubagentStart: (input) => {

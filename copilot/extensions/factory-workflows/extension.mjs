@@ -1,58 +1,8 @@
 import { defineWorkflow, joinSession } from "@github/copilot-sdk/extension";
-
-const DEFAULT_MODELS = ["claude-opus-5.5", "gpt-6.1-sol", "gemini-4-argon"];
-
-const FINDINGS_SCHEMA = {
-    type: "object",
-    additionalProperties: false,
-    required: ["findings"],
-    properties: {
-        findings: {
-            type: "array",
-            items: {
-                type: "object",
-                additionalProperties: false,
-                required: ["title", "command", "observed", "expected"],
-                properties: {
-                    title: { type: "string" },
-                    command: { type: "string" },
-                    observed: { type: "string" },
-                    expected: { type: "string" },
-                },
-            },
-        },
-    },
-};
-
-const VERDICT_SCHEMA = {
-    type: "object",
-    additionalProperties: false,
-    required: ["reproduced", "observed", "reason"],
-    properties: {
-        reproduced: { type: "boolean" },
-        observed: { type: "string" },
-        reason: { type: "string" },
-    },
-};
-
-const attackPrompt = (scope, intent, model) => `Break this change.
-
-Scope: ${scope}
-Intent (what the change is supposed to do): ${intent}
-
-Prove each finding with a run against the real code, such as a failing test, a repro script, or command output that shows the wrong behavior. Put repro files under ./.scratch/interrogate-${model}/ and nowhere else. Report each finding with a short title, the exact command, the output it printed, and the output the intent requires. Leave out anything you did not run, including style, naming, structure, and risks that need a future change to matter. An empty findings list is a valid result.`;
-
-const verifyPrompt = (scope, intent, finding, model) => `Another reviewer claims this change is broken. Check the claim independently. Do not fix anything.
-
-Scope: ${scope}
-Intent: ${intent}
-
-Claimed failure: ${finding.title}
-Their command: ${finding.command}
-Output they say it printed: ${finding.observed}
-Output the intent requires: ${finding.expected}
-
-Run the command, or your own equivalent if it depends on files you don't have. Write only under ./.scratch/interrogate-verify-${model}/. Set reproduced to true only if your own run shows the failure and it breaks the intent. Put what your run printed in observed, and one sentence of reasoning in reason.`;
+import { arena } from "./arena.mjs";
+import { feature } from "./feature.mjs";
+import { MODELS, REVIEW_SCHEMA, bool, obj, runInterrogation, str, strList } from "./lib.mjs";
+import { shipCheck } from "./ship-check.mjs";
 
 const interrogate = defineWorkflow({
     meta: {
@@ -63,7 +13,6 @@ const interrogate = defineWorkflow({
             "intent is what the change should do, and models (2 or more CLI model IDs) overrides the default Claude, GPT and Gemini trio.",
         phases: [
             { title: "Attack", detail: "One Adversary per model family" },
-            { title: "Verify", detail: "Each finding rerun by a different model family" },
             { title: "Report" },
         ],
         argsSchema: {
@@ -81,69 +30,13 @@ const interrogate = defineWorkflow({
         if (!scope?.trim() || !intent?.trim()) {
             throw new Error("args.scope and args.intent must be non-empty strings");
         }
-        const models = Array.isArray(ctx.args.models) && ctx.args.models.length >= 2 ? ctx.args.models : DEFAULT_MODELS;
-        const verifierFor = (model) => models[(models.indexOf(model) + 1) % models.length];
-
+        const models = Array.isArray(ctx.args.models) && ctx.args.models.length >= 2 ? ctx.args.models : MODELS.adversaries;
         ctx.phase("Attack");
-        const perModel = await ctx.pipeline(
-            models,
-            (_, model) =>
-                ctx.agent(attackPrompt(scope, intent, model), {
-                    agent: "Adversary",
-                    model,
-                    label: `attack:${model}`,
-                    schema: FINDINGS_SCHEMA,
-                }),
-            async (attack, model) => {
-                if (!attack) {
-                    ctx.log(`${model}: no usable result`);
-                    return { model, failed: true, checked: [] };
-                }
-                ctx.log(`${model}: ${attack.findings.length} candidate finding(s)`);
-                const verifier = verifierFor(model);
-                const checked = await ctx.parallel(
-                    attack.findings.map((finding, i) => async () => ({
-                        ...finding,
-                        foundBy: model,
-                        verifiedBy: verifier,
-                        verdict: await ctx.agent(verifyPrompt(scope, intent, finding, verifier), {
-                            agent: "Adversary",
-                            model: verifier,
-                            label: `verify:${model}:${i}`,
-                            schema: VERDICT_SCHEMA,
-                        }),
-                    }))
-                );
-                return { model, failed: false, checked: checked.filter((c) => c !== null) };
-            }
-        );
-
+        const result = await runInterrogation(ctx, { scope, intent, models, tag: "i" });
         ctx.phase("Report");
-        const confirmed = [];
-        const dropped = [];
-        for (const result of perModel.filter((r) => r !== null)) {
-            for (const f of result.checked) {
-                if (f.verdict?.reproduced === true) confirmed.push(f);
-                else dropped.push({ ...f, dropReason: f.verdict ? f.verdict.reason : "verifier returned no result" });
-            }
-        }
-        const failedAdversaries = perModel
-            .map((r, i) => (r === null || r.failed ? models[i] : null))
-            .filter((m) => m !== null);
-        ctx.log(`${confirmed.length} confirmed, ${dropped.length} dropped`);
-        return { scope, intent, models, confirmed, dropped, failedAdversaries };
+        return { scope, intent, ...result };
     },
 });
-
-const obj = (properties) => ({
-    type: "object",
-    additionalProperties: false,
-    required: Object.keys(properties),
-    properties,
-});
-const str = { type: "string" };
-const bool = { type: "boolean" };
-const strList = { type: "array", items: str };
 
 const REPRO_SCHEMA = obj({ command: str, output: str, whyItShowsTheBug: str });
 const FAILS_SCHEMA = obj({ fails: bool, output: str, reason: str });
@@ -153,10 +46,9 @@ const ROOT_CAUSE_SCHEMA = obj({ rootCause: str, evidence: str, firstWrongPlace: 
 const FIX_SCHEMA = obj({ summary: str, filesChanged: strList });
 const FIX_CHECK_SCHEMA = obj({ reproPasses: bool, reproOutput: str, testsPass: bool, testsOutput: str });
 const PREMISE_SCHEMA = obj({ premise: str, test: str, holds: bool, revisedRootCause: str });
-const REVIEW_SCHEMA = obj({ blockers: { type: "array", items: obj({ where: str, issue: str, evidence: str }) }, notes: strList });
 
-const VERIFIER = "gpt-6.1-sol";
-const REASONER = "claude-opus-5.5";
+const VERIFIER = MODELS.verifier;
+const REASONER = MODELS.reasoner;
 
 const bugFix = defineWorkflow({
     meta: {
@@ -216,11 +108,18 @@ const bugFix = defineWorkflow({
         ctx.log(`repro confirmed by ${VERIFIER}: ${repro.command}`);
 
         ctx.phase("Root cause");
-        const hyp = await ctx.agent(
-            `${brief}\n\nFailing repro: ${repro.command}\nOutput:\n${repro.output}\n\nList 2 to 5 candidate root causes, seeded by the code and the recent git history of the affected lines. For each, give one read-only check (a command, or a specific file and line to read) that would confirm or rule it out.`,
-            { agent: "Scout", model: REASONER, label: "hypotheses", schema: HYPOTHESES_SCHEMA }
+        const usable = (r) => (r?.hypotheses ?? []).filter((h) => h.claim.trim().length > 10 && h.check.trim().length > 5);
+        const hypothesisPrompt = `${brief}\n\nFailing repro: ${repro.command}\nOutput:\n${repro.output}\n\nRead the code under test and the recent git history of the affected lines. List 2 to 5 candidate root causes. For each, claim is one sentence naming the file and the mechanism, and check is one read-only command, or a specific file and line to read, that would confirm or rule it out. Neither field may be empty.`;
+        let hypotheses = usable(
+            await ctx.agent(hypothesisPrompt, { agent: "Scout", model: REASONER, label: "hypotheses", schema: HYPOTHESES_SCHEMA })
         );
-        const hypotheses = (hyp?.hypotheses ?? []).filter((h) => h.claim.trim().length > 10 && h.check.trim().length > 5);
+        if (hypotheses.length === 0) {
+            // Schema-valid but empty output repeats under the same agent, so retry once without it.
+            ctx.log("hypotheses came back empty; retrying once");
+            hypotheses = usable(
+                await ctx.agent(hypothesisPrompt, { model: REASONER, label: "hypotheses-retry", schema: HYPOTHESES_SCHEMA })
+            );
+        }
         const checks = await ctx.parallel(
             hypotheses.map((h, i) => async () => ({
                 ...h,
@@ -251,7 +150,7 @@ const bugFix = defineWorkflow({
                 ? `\n\nEarlier attempts failed. First undo any part of them that the current root cause doesn't justify:\n${rounds.map((r) => `- round ${r.round}: ${r.fix?.summary ?? "no result"}; check said: ${r.check?.reproOutput ?? "no result"}`).join("\n")}`
                 : "";
             const fix = await ctx.agent(
-                `${brief}\n\nRoot cause: ${rootCause.rootCause}\nFirst wrong place: ${rootCause.firstWrongPlace}\nEvidence: ${rootCause.evidence}\n\nMake the smallest change at the root cause that makes this repro pass: ${repro.command}${testCommand ? `\nThe project's tests must still pass: ${testCommand}` : ""}${history}\n\nDo not edit the repro. Do not commit or push.`,
+                `${brief}\n\nRoot cause: ${rootCause.rootCause}\nFirst wrong place: ${rootCause.firstWrongPlace}\nEvidence: ${rootCause.evidence}\n\nMake the smallest change at the root cause that makes this repro pass: ${repro.command}${testCommand ? `\nThe project's tests must still pass: ${testCommand}` : ""}${history}\n\nDo not edit the repro or any existing test. If the fix seems to require changing an existing test, stop and say why in summary instead. Do not commit or push.`,
                 { agent: "Builder", label: `fix:${round}`, schema: FIX_SCHEMA }
             );
             const check = await ctx.agent(
@@ -286,4 +185,4 @@ const bugFix = defineWorkflow({
     },
 });
 
-await joinSession({ workflows: [interrogate, bugFix] });
+await joinSession({ workflows: [interrogate, bugFix, shipCheck, arena, feature] });
