@@ -5,7 +5,7 @@ description: Engineering principles for planning, writing, testing, debugging an
 
 # Engineering principles
 
-Adapted from pstack by Lauren Tan (MIT). See NOTICE in the factory README.
+Adapted from pstack by Lauren Tan (MIT). See `NOTICE-pstack-LICENSE.txt` in the dotfiles `copilot/` folder.
 
 Read the full reference file for any principle you apply. In your report, name each principle that shaped a decision and the specific choice it changed. Cite only principles whose reference file you read this session.
 
