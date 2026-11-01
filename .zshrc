@@ -134,7 +134,33 @@ alias grom="git rebase origin main"
 
 export PATH="/usr/local/sbin:$PATH"
 
+# nvm.sh costs ~0.6s per shell. Put the newest installed Node on PATH directly and load nvm on first use.
+export NVM_DIR="$HOME/.nvm"
+if [[ -s $NVM_DIR/nvm.sh ]]; then
+  () {
+    setopt local_options numeric_glob_sort
+    local newest=("$NVM_DIR"/versions/node/v*(N/On[1]))
+    [[ -n $newest ]] && path=("$newest/bin" $path)
+  }
+  nvm() {
+    unset -f nvm
+    \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+    nvm "$@"
+  }
+fi
+
+if command -v rbenv >/dev/null; then
+  # Shims on PATH now; full `rbenv init` (~110ms) only when the rbenv command is first used.
+  export RBENV_SHELL=zsh
+  path=("$HOME/.rbenv/shims" $path)
+  rbenv() { unfunction rbenv; eval "$(command rbenv init - --no-rehash zsh)"; rbenv "$@"; }
+fi
+
 
 
 # Architect session in a tmux layout (chat, live sessions, repo state); plain Architect session without tmux.
 alias cf="$HOME/.copilot/bin/cf"
+
+# Machine-only settings (extra PATH entries, tokens). Not tracked in git.
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
