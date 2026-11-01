@@ -135,3 +135,6 @@ alias grom="git rebase origin main"
 export PATH="/usr/local/sbin:$PATH"
 
 
+
+# Architect session with the factory loaded; Opus because subagents cannot outrank the session model.
+alias cf="copilot --agent architect --model claude-opus-5.5"

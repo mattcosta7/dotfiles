@@ -1,0 +1,10 @@
+{
+    "experimental": true,
+    "notifications": true,
+    "keepAlive": "busy",
+    "statusLine": {
+        "type": "command",
+        "command": "~/.copilot/statusline.sh",
+        "refreshInterval": 15
+    }
+}

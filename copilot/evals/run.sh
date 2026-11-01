@@ -1,12 +1,12 @@
 #!/bin/sh
 # Factory test suite: runs workflows and hooks headless against throwaway fixtures and checks real outcomes.
 # Usage: [REPEAT=N] sh copilot/evals/run.sh [case ...]
-# Cases: units models interrogate-planted interrogate-clean bug-fix hook-force-push (default),
+# Cases: units layout models interrogate-planted interrogate-clean bug-fix hook-force-push (default),
 #        bug-fix-stuck ship-check-pass ship-check-fail arena feature (opt-in, slow; or use "all")
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-DEFAULT_CASES="units models interrogate-planted interrogate-clean bug-fix hook-force-push"
+DEFAULT_CASES="units layout models interrogate-planted interrogate-clean bug-fix hook-force-push"
 CASES="${*:-$DEFAULT_CASES}"
 [ "$CASES" = all ] && CASES="$DEFAULT_CASES bug-fix-stuck ship-check-pass ship-check-fail arena feature"
 REPEAT="${REPEAT:-1}"
@@ -201,6 +201,47 @@ case_feature() {
     fi
 }
 
+case_layout() {
+    start=$(date +%s)
+    base="$WORK/layout-$RUN"
+    home="$base/home"
+    s="$home/.copilot/settings.json"
+    mkdir -p "$home/.copilot"
+    printf '{"allowedUrls":["https://example.com"],"experimental":false,"notifications":false}\n' > "$s"
+    why=""
+
+    HOME="$home" sh "$HERE/../install.sh" > "$base/install1.log" 2>&1 || why="$why; install failed"
+    jq -e '.allowedUrls == ["https://example.com"] and .experimental == true and .notifications == true and .keepAlive == "busy" and .statusLine.command == "~/.copilot/statusline.sh"' "$s" > /dev/null 2>&1 || why="$why; merge dropped or missed keys"
+    [ -x "$home/.copilot/statusline.sh" ] || why="$why; statusline.sh not linked"
+
+    sum=$(cksum < "$s")
+    backups=$(find "$home/.copilot" -maxdepth 1 -name '.backup-*' | wc -l)
+    HOME="$home" sh "$HERE/../install.sh" > "$base/install2.log" 2>&1 || why="$why; rerun failed"
+    [ "$sum" = "$(cksum < "$s")" ] || why="$why; rerun changed settings"
+    [ "$backups" = "$(find "$home/.copilot" -maxdepth 1 -name '.backup-*' | wc -l)" ] || why="$why; rerun made a backup"
+
+    printf 'not json' > "$s"
+    HOME="$home" sh "$HERE/../install.sh" > "$base/install3.log" 2>&1
+    [ "$(cat "$s")" = 'not json' ] || why="$why; invalid settings.json was overwritten"
+
+    repo="$base/repo"
+    new_repo "$repo"
+    printf 'x\n' > f && git add . && commit -m init
+    payload=$(printf '{"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":12.7},"model":{"display_name":"test-model"}}' "$repo")
+    out=""
+    for _ in 1 2 3 4 5 6; do
+        out=$(printf '%s' "$payload" | XDG_CACHE_HOME="$base/cache" sh "$HERE/../statusline.sh")
+        case "$out" in *clean*) break ;; esac
+        sleep 1
+    done
+    case "$out" in "main · clean · ctx 12% · test-model") ;; *) why="$why; status line was '$out'" ;; esac
+
+    secs=$(( $(date +%s) - start ))
+    if [ -z "$why" ]; then record layout PASS "$secs" "merge keeps keys, rerun is a no-op, status line: $out"
+    else record layout FAIL "$secs" "${why#; }"
+    fi
+}
+
 case_hook_force_push() {
     # Extension approvals are stored per folder, so this case uses a fixed path you approve once.
     dir="$HOME/.cache/factory-evals/hook"
@@ -229,6 +270,7 @@ while [ "$RUN" -le "$REPEAT" ]; do
     for c in $CASES; do
         case "$c" in
             units) case_units ;;
+            layout) case_layout ;;
             models) case_models ;;
             interrogate-planted) case_interrogate interrogate-planted 'Math.max(min, Math.min(x, max - 1))' some ;;
             interrogate-clean) case_interrogate interrogate-clean 'Math.max(min, Math.min(x, max))' none ;;
