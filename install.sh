@@ -9,6 +9,7 @@ ln -s $(pwd)/vimrc $HOME/.vimrc
 ln -s $(pwd)/vim $HOME/.vim
 ln -s $(pwd)/emacs $HOME/.emacs
 ln -s $(pwd)/screenrc $HOME/.screenrc
+sh $(pwd)/copilot/install.sh
 
 # Oh My Zsh!
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
