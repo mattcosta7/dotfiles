@@ -136,5 +136,5 @@ export PATH="/usr/local/sbin:$PATH"
 
 
 
-# Architect session with the factory loaded; Opus because subagents cannot outrank the session model.
-alias cf="copilot --agent architect --model claude-opus-5.5"
+# Architect session in a tmux layout (chat, live sessions, repo state); plain Architect session without tmux.
+alias cf="$HOME/.copilot/bin/cf"

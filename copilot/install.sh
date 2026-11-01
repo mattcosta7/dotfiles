@@ -8,7 +8,7 @@ dest="$HOME/.copilot"
 backup="$dest/.backup-$(date +%Y%m%d%H%M%S)"
 mkdir -p "$dest"
 
-for name in agents skills extensions copilot-instructions.md mcp-config.json statusline.sh; do
+for name in agents skills extensions bin copilot-instructions.md mcp-config.json statusline.sh; do
     target="$dest/$name"
     if [ -L "$target" ]; then
         rm "$target"
