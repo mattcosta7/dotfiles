@@ -1,0 +1,39 @@
+name: Sync third-party skills
+
+on:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - run: sh copilot/sync-skills.sh
+
+      - name: Open or update a PR if anything changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain copilot)" ]; then
+            echo "Skills already match upstream."
+            exit 0
+          fi
+          branch=sync-third-party-skills
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add copilot
+          git commit -q -m "Sync third-party skills"
+          git push -f origin "$branch"
+          if ! gh pr view "$branch" --json state --jq .state 2>/dev/null | grep -q OPEN; then
+            gh pr create --base main --head "$branch" \
+              --title "Sync third-party skills" \
+              --body "Weekly run of copilot/sync-skills.sh. Skills are instructions agents follow, so read the diff before merging. skills.lock shows the upstream commit for each skill."
+          fi

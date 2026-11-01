@@ -1,5 +1,5 @@
 #!/bin/sh
-# Links Copilot agents, skills and instructions into ~/.copilot. Safe to rerun.
+# Links Copilot agents, skills, instructions and MCP servers into ~/.copilot. Safe to rerun.
 set -eu
 
 src="$(cd "$(dirname "$0")" && pwd)"
@@ -7,7 +7,7 @@ dest="$HOME/.copilot"
 backup="$dest/.backup-$(date +%Y%m%d%H%M%S)"
 mkdir -p "$dest"
 
-for name in agents skills copilot-instructions.md; do
+for name in agents skills copilot-instructions.md mcp-config.json; do
     target="$dest/$name"
     if [ -L "$target" ]; then
         rm "$target"
