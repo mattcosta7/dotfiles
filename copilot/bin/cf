@@ -1,0 +1,47 @@
+#!/bin/sh
+# Starts the Architect session in a tmux layout: chat on the left, live sessions and repo state on the right.
+# Env: CF_SESSION (tmux session name), CF_COPILOT (command for the chat pane), CF_NO_ATTACH=1 (create only),
+#      CF_SIZE="ROWS COLS" (override the detected terminal size).
+set -eu
+
+here="$(cd "$(dirname "$0")" && pwd)"
+chat="${CF_COPILOT:-copilot --agent architect --model claude-opus-5.5}"
+
+if ! command -v tmux >/dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    exec $chat "$@"
+fi
+
+name="${CF_SESSION:-cf-$(basename "$PWD" | tr -c 'A-Za-z0-9_\n-' '_')}"
+
+if ! tmux has-session -t "=$name" 2>/dev/null; then
+    size=${CF_SIZE:-$(stty size < /dev/tty 2>/dev/null || echo "50 200")}
+    rows=${size% *}
+    cols=${size#* }
+    # shellcheck disable=SC2086
+    main=$(tmux new-session -d -s "$name" -c "$PWD" -x "$cols" -y "$rows" -P -F '#{pane_id}' -- $chat "$@")
+    tmux set-option -t "$name" mouse on
+    tmux set-window-option -t "$name" pane-border-status top
+    tmux set-window-option -t "$name" pane-border-format ' #{pane_title} '
+    tmux set-option -as terminal-features ',*:RGB'
+    if [ "$cols" -ge 110 ]; then
+        side=$(tmux split-window -h -l 40 -t "$main" -c "$PWD" -P -F '#{pane_id}' "$here/cf-panel" sessions "$main")
+        repo=$(tmux split-window -v -l 50% -t "$side" -c "$PWD" -P -F '#{pane_id}' "$here/cf-panel" repo "$main" "$PWD")
+        tmux select-pane -t "$side" -T "Sessions"
+        tmux select-pane -t "$repo" -T "Repo"
+        # tmux rescales panes proportionally when a client attaches or resizes; keep the side column fixed.
+        for hook in client-attached client-resized; do
+            tmux set-hook -t "$name" "$hook" "resize-pane -t $side -x 40"
+        done
+        tmux select-pane -t "$main"
+    fi
+elif [ "$#" -gt 0 ]; then
+    echo "cf: session $name already exists, attaching; arguments ignored (CF_SESSION=other cf ... starts another)" >&2
+fi
+
+[ -z "${CF_NO_ATTACH:-}" ] || exit 0
+if [ -n "${TMUX:-}" ]; then
+    tmux switch-client -t "=$name"
+else
+    exec tmux attach-session -t "=$name"
+fi

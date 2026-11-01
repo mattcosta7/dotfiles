@@ -1,12 +1,12 @@
 #!/bin/sh
 # Factory test suite: runs workflows and hooks headless against throwaway fixtures and checks real outcomes.
 # Usage: [REPEAT=N] sh copilot/evals/run.sh [case ...]
-# Cases: units models interrogate-planted interrogate-clean bug-fix hook-force-push (default),
+# Cases: units layout cf-layout models interrogate-planted interrogate-clean bug-fix hook-force-push (default),
 #        bug-fix-stuck ship-check-pass ship-check-fail arena feature (opt-in, slow; or use "all")
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-DEFAULT_CASES="units models interrogate-planted interrogate-clean bug-fix hook-force-push"
+DEFAULT_CASES="units layout cf-layout models interrogate-planted interrogate-clean bug-fix hook-force-push"
 CASES="${*:-$DEFAULT_CASES}"
 [ "$CASES" = all ] && CASES="$DEFAULT_CASES bug-fix-stuck ship-check-pass ship-check-fail arena feature"
 REPEAT="${REPEAT:-1}"
@@ -201,6 +201,85 @@ case_feature() {
     fi
 }
 
+case_layout() {
+    start=$(date +%s)
+    base="$WORK/layout-$RUN"
+    home="$base/home"
+    s="$home/.copilot/settings.json"
+    mkdir -p "$home/.copilot"
+    printf '{"allowedUrls":["https://example.com"],"experimental":false,"notifications":false}\n' > "$s"
+    why=""
+
+    HOME="$home" sh "$HERE/../install.sh" > "$base/install1.log" 2>&1 || why="$why; install failed"
+    jq -e '.allowedUrls == ["https://example.com"] and .experimental == true and .notifications == true and .keepAlive == "busy" and .statusLine.command == "~/.copilot/statusline.sh"' "$s" > /dev/null 2>&1 || why="$why; merge dropped or missed keys"
+    [ -x "$home/.copilot/statusline.sh" ] || why="$why; statusline.sh not linked"
+
+    sum=$(cksum < "$s")
+    backups=$(find "$home/.copilot" -maxdepth 1 -name '.backup-*' | wc -l)
+    HOME="$home" sh "$HERE/../install.sh" > "$base/install2.log" 2>&1 || why="$why; rerun failed"
+    [ "$sum" = "$(cksum < "$s")" ] || why="$why; rerun changed settings"
+    [ "$backups" = "$(find "$home/.copilot" -maxdepth 1 -name '.backup-*' | wc -l)" ] || why="$why; rerun made a backup"
+
+    printf 'not json' > "$s"
+    HOME="$home" sh "$HERE/../install.sh" > "$base/install3.log" 2>&1
+    [ "$(cat "$s")" = 'not json' ] || why="$why; invalid settings.json was overwritten"
+
+    repo="$base/repo"
+    new_repo "$repo"
+    printf 'x\n' > f && git add . && commit -m init
+    payload=$(printf '{"workspace":{"current_dir":"%s"},"context_window":{"used_percentage":12.7},"model":{"display_name":"test-model"}}' "$repo")
+    out=""
+    for _ in 1 2 3 4 5 6; do
+        out=$(printf '%s' "$payload" | XDG_CACHE_HOME="$base/cache" sh "$HERE/../statusline.sh")
+        case "$out" in *clean*) break ;; esac
+        sleep 1
+    done
+    case "$out" in "main · clean · ctx 12% · test-model") ;; *) why="$why; status line was '$out'" ;; esac
+
+    secs=$(( $(date +%s) - start ))
+    if [ -z "$why" ]; then record layout PASS "$secs" "merge keeps keys, rerun is a no-op, status line: $out"
+    else record layout FAIL "$secs" "${why#; }"
+    fi
+}
+
+case_cf_layout() {
+    start=$(date +%s)
+    if ! command -v tmux > /dev/null 2>&1; then record cf-layout SKIP 0 "tmux not installed"; return; fi
+    base="$WORK/cf-layout-$RUN"
+    sock="$base/sock"
+    mkdir -p "$sock"
+    repo="$base/repo"
+    new_repo "$repo"
+    printf 'x\n' > f && git add . && commit -m init
+    why=""
+    # An isolated tmux socket keeps this off the real server and its sessions.
+    T() { env -u TMUX TMUX_TMPDIR="$sock" "$@"; }
+
+    (cd "$repo" && T env CF_NO_ATTACH=1 CF_SIZE="45 160" CF_SESSION=cft CF_COPILOT="sleep 120" sh "$HERE/../bin/cf") > "$base/cf.log" 2>&1 || why="$why; cf failed"
+    panes=$(T tmux list-panes -t cft -F '#{pane_title}:#{pane_width}' 2> /dev/null | tr '\n' ' ')
+    case "$panes" in *Sessions:40*Repo:40*) ;; *) why="$why; panes were '$panes'" ;; esac
+    sleep 4
+    T tmux capture-pane -p -t cft:.1 2> /dev/null | grep -q 'Live sessions:' || why="$why; sessions pane has no header"
+    T tmux capture-pane -p -t cft:.2 2> /dev/null | grep -q '## main' || why="$why; repo pane does not show the branch"
+
+    main=$(T tmux list-panes -t cft -F '#{pane_id}' 2> /dev/null | head -1)
+    T tmux kill-pane -t "$main" 2> /dev/null
+    sleep 5
+    T tmux has-session -t cft 2> /dev/null && why="$why; session survived closing the chat pane"
+    ps -axo command | grep -v grep | grep -q "cf-panel .* $main" && why="$why; panel processes outlived the chat pane"
+    T tmux kill-server 2> /dev/null
+
+    nobin="$base/nobin"
+    mkdir -p "$nobin" && ln -sf "$(command -v dirname)" "$nobin/dirname"
+    plain=$(cd "$repo" && env PATH="$nobin" CF_COPILOT="/bin/echo plain-ok" /bin/sh "$HERE/../bin/cf" 2>&1)
+    [ "$plain" = plain-ok ] || why="$why; without tmux got '$plain'"
+
+    secs=$(( $(date +%s) - start ))
+    if [ -z "$why" ]; then record cf-layout PASS "$secs" "3 panes, side column 40, panels render, teardown clean, plain fallback"
+    else record cf-layout FAIL "$secs" "${why#; }"
+    fi
+}
+
 case_hook_force_push() {
     # Extension approvals are stored per folder, so this case uses a fixed path you approve once.
     dir="$HOME/.cache/factory-evals/hook"
@@ -229,6 +308,8 @@ while [ "$RUN" -le "$REPEAT" ]; do
     for c in $CASES; do
         case "$c" in
             units) case_units ;;
+            layout) case_layout ;;
+            cf-layout) case_cf_layout ;;
             models) case_models ;;
             interrogate-planted) case_interrogate interrogate-planted 'Math.max(min, Math.min(x, max - 1))' some ;;
             interrogate-clean) case_interrogate interrogate-clean 'Math.max(min, Math.min(x, max))' none ;;
