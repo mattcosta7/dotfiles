@@ -1,0 +1,3 @@
+# Third-party skill sources for sync-skills.sh: <owner/repo> <path to skills folder>
+rstackjs/agent-skills skills
+mcollina/skills skills
