@@ -10,6 +10,10 @@ Adapted from the shipping playbook in pstack by Lauren Tan (MIT).
 
 Green CI and an approving review are not a verdict. Neither runs the change as a user would. This skill produces a verdict from agents that did not write the code, for one exact commit. It never merges.
 
+## Prefer the workflow
+
+In Copilot CLI with experimental features on, run the `ship-check` dynamic workflow with `{ "pr": <number or URL> }`, or `{ "ref": ..., "base": ..., "description": ... }` for a local branch. Add `testCommand`, `criteria` or `risky: true` when you have them. It pins the head commit, checks it out in a worktree under `.factory-worktrees/`, runs Tester and a Reviewer on another model family against the criteria, and computes the verdict in code: FAIL, PASS+NOTES, PASS, or STALE if the head moved. Report its result in the format below. Where workflows aren't available, follow the steps below.
+
 ## 1. Pin the commit
 
 Read the PR's `headRefOid`, `baseRefName` and description:
@@ -22,7 +26,7 @@ The verdict covers that commit only. If the head moves later, the verdict is sta
 Don't disturb the current working tree. Create a separate worktree at the pinned commit:
 ```
 git fetch origin pull/<pr>/head
-git worktree add --detach ../<repo>-shipcheck-<pr> <headRefOid>
+git worktree add --detach .factory-worktrees/shipcheck-<pr> <headRefOid>
 ```
 
 ## 3. Derive what to check
@@ -47,6 +51,6 @@ A criterion you couldn't verify by running it is not a pass. List it as unverifi
 
 ## 6. Clean up and report
 
-Remove the worktree: `git worktree remove ../<repo>-shipcheck-<pr>`.
+Remove the worktree: `git worktree remove .factory-worktrees/shipcheck-<pr>`.
 
 Report the verdict, the commit SHA it covers, each criterion with its evidence, findings, and anything unverified. Post the verdict as a PR comment only if I ask, and write the comment body to a file first: `gh pr comment <pr> --body-file <file>`. Never merge. That stays my call.

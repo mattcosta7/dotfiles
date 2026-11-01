@@ -8,6 +8,10 @@ argument-hint: The task to run in the arena
 
 Adapted from pstack by Lauren Tan (MIT).
 
+## Prefer the workflow
+
+In Copilot CLI with experimental features on, run the `arena` dynamic workflow with `{ "task": ..., "rubric": [...], "testCommand": ... }` (optional: `artifact`, `models`, `grounding`) instead of phases A to F. It runs the candidates in parallel on different model families in worktrees under `.factory-worktrees/`, has two judges on different families score them against the hidden rubric, lets the tests override the judges, grafts into the winner, and reverts a graft that breaks the tests. It removes the worktrees and leaves the winner on its `arena/<slug>-<n>` branch. Report from its result and merge with its `mergeWith` command after my go-ahead. Where workflows aren't available, such as VS Code chat, follow the phases by hand.
+
 Open a todo list with one item per phase (Frame, Fan out, Judge, Pick, Graft, Verify) before launching anything.
 
 ## A. Frame
@@ -18,7 +22,8 @@ Every candidate gets the same prompt, so the prompt is the contract.
 2. Write a rubric of 3 to 6 concrete, gradeable criteria for this task. Only you and the judge see it. Candidates see the task.
 3. Pick 2 or 3 runners. Default to Builder on two model families where available, for example one Claude and one GPT model in Copilot, or opus and sonnet in Claude Code, requested explicitly. Use the same model several times only when the work is generation-heavy rather than judgment-heavy.
 4. Isolate each candidate, per the separate-before-serializing-shared-state principle. Subagents share one workspace, so in a git repo create a worktree per candidate before fanning out:
-   `git worktree add ../<repo>-arena-<slug>-<n> -b arena/<slug>-<n>`
+   `git worktree add .factory-worktrees/arena-<slug>-<n> -b arena/<slug>-<n>`
+   Keep worktrees inside the repo, since agents are often denied paths outside it, and add `/.factory-worktrees/` to `.git/info/exclude`.
    Outside git, use `./.scratch/arena-<slug>/candidate-<n>/`. Never let two candidates write the same path.
 
 ## B. Fan out
