@@ -15,6 +15,10 @@ Adversaries try to break a change or design. A finding survives only when a run 
 - **Scope.** What I named. Otherwise the branch diff from its merge base with the default branch, plus uncommitted changes.
 - **Intent.** Restate in your own words what the change is supposed to do, from my message, commit messages and the code. Ask only if the intent is truly unclear.
 
+## Prefer the workflow
+
+In Copilot CLI with experimental features on, run the `interrogate` dynamic workflow with `{ "scope": ..., "intent": ... }` instead of steps 2 and 3. It fans out Adversaries on three model families and keeps a finding only when an Adversary on a different family reproduces it. Then do step 4 from its result. Where workflows aren't available, such as VS Code chat, follow steps 2 and 3 by hand.
+
 ## 2. Fan out
 
 Run two or three Adversary subagents in parallel, each on a **different model family** where your tool offers more than one, for example one Claude and one GPT model in Copilot. Different families find different failures. Claude Code offers only Claude models, so use two different ones there, such as opus and sonnet. Request the model explicitly for each one. In Copilot, a subagent can't use a pricier model than the session, so run this from your top-tier session.

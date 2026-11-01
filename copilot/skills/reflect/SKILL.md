@@ -29,11 +29,11 @@ Each returns findings with the transcript evidence for each.
 Sort every finding into **Accepted**, **Rejected** (with reason) or **Backlog**. For each Accepted item, give the exact target file and the edit. Targets, in order of preference:
 
 1. A script, test, lint rule or type in the project (read the encode-lessons-in-structure principle). If it can be enforced this way, prefer that over more text.
-2. An existing agent or skill. Edit the factory's source folder (the one holding `install.sh`), not the installed copies, since agents are generated from it.
+2. An existing agent or skill. Edit the factory's source in `~/dotfiles/copilot/`, which `~/.copilot` links to. For third-party skills listed in `skills.lock`, change `skill-sources.txt` instead, since the sync script overwrites those copies.
 3. The factory's `copilot-instructions.md`, only for rules that apply to every task.
 
 Move anything a check would enforce better than prose to Backlog with the proposed check.
 
 ## 4. Apply only after approval
 
-Show the full Accepted, Rejected and Backlog lists and wait for me to pick. Never auto-apply. After approval, make the edits in the factory's source folder, then tell me to rerun its `install.sh` so the change reaches every tool, machine and codespace.
+Show the full Accepted, Rejected and Backlog lists and wait for me to pick. Never auto-apply. After approval, make the edits in `~/dotfiles/copilot/` and commit them. Changes apply on this machine immediately through the links, and reach codespaces once they are on the dotfiles default branch.
