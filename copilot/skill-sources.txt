@@ -1,0 +1,7 @@
+# Third-party skill sources for sync-skills.sh: <owner/repo> <path to skills folder> [folders to skip, comma-separated]
+rstackjs/agent-skills skills rspress-best-practices,rspress-custom-theme,rspress-description-generator,rspress-docs-generator,rspress-v2-upgrade
+mcollina/skills skills oauth,snipgrapher,octocat
+addyosmani/web-quality-skills skills seo
+ChromeDevTools/chrome-devtools-mcp skills
+# Skipped: Next.js/Vercel-specific, or fetch their instructions from a URL at run time.
+vercel-labs/agent-skills skills deploy-to-vercel,vercel-cli-with-tokens,vercel-optimize,web-design-guidelines,writing-guidelines,react-native-skills

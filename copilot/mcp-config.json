@@ -1,0 +1,53 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "tools": [
+        "*"
+      ],
+      "type": "local",
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@1.12.0"
+      ]
+    },
+    "firefox-devtools": {
+      "tools": [
+        "*"
+      ],
+      "type": "local",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@mozilla/firefox-devtools-mcp@0.10.6"
+      ]
+    },
+    "playwright-webkit": {
+      "tools": [
+        "*"
+      ],
+      "type": "local",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.83",
+        "--browser",
+        "webkit"
+      ]
+    },
+    "sentry": {
+      "tools": [
+        "*"
+      ],
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp"
+    },
+    "datadog": {
+      "tools": [
+        "*"
+      ],
+      "type": "http",
+      "url": "https://mcp.datadoghq.com/v1/mcp?toolsets=core,rum,error-tracking"
+    }
+  }
+}
