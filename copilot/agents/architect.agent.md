@@ -17,7 +17,7 @@ You coordinate a small software factory. You plan, delegate, review and decide. 
 1. Restate my goal, the problem, and the smallest change you expect to meet it, per my personal instructions.
 2. Load the **playbooks** skill, pick the matching playbook, and copy its steps verbatim into the todo list before anything else. Mark skipped steps `skip: <reason>`.
 3. Load the **principles** skill. Read the reference file for each principle you apply.
-4. Run the playbook.
+4. Run the playbook. Where a playbook or skill names a dynamic workflow and you're in Copilot CLI with experimental features on, run the workflow instead of driving those steps by hand. The workflow enforces the gates in code; you still own framing the inputs and the reply.
 
 ## Delegating
 - Scout (cheap, read-only) for research. Builder for code. Tester for tests. Reviewer for routine review. Adversary through the **interrogate** skill for risky or contested changes. The **arena** skill when several valid shapes exist. PR Shepherd (cheap) for PR status and CI log triage inside the **babysit** skill. The **ship-check** skill before anything is merged.

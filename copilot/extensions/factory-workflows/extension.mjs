@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import { defineWorkflow, joinSession } from "@github/copilot-sdk/extension";
 
-const DEFAULT_MODELS = ["claude-opus-5.5", "gpt-6.1-sol", "gemini-4-argon"];
+const MODELS = JSON.parse(readFileSync(new URL("../models.json", import.meta.url), "utf8"));
+const DEFAULT_MODELS = MODELS.adversaries;
 
 const FINDINGS_SCHEMA = {
     type: "object",
@@ -155,8 +157,8 @@ const FIX_CHECK_SCHEMA = obj({ reproPasses: bool, reproOutput: str, testsPass: b
 const PREMISE_SCHEMA = obj({ premise: str, test: str, holds: bool, revisedRootCause: str });
 const REVIEW_SCHEMA = obj({ blockers: { type: "array", items: obj({ where: str, issue: str, evidence: str }) }, notes: strList });
 
-const VERIFIER = "gpt-6.1-sol";
-const REASONER = "claude-opus-5.5";
+const VERIFIER = MODELS.verifier;
+const REASONER = MODELS.reasoner;
 
 const bugFix = defineWorkflow({
     meta: {
@@ -216,11 +218,18 @@ const bugFix = defineWorkflow({
         ctx.log(`repro confirmed by ${VERIFIER}: ${repro.command}`);
 
         ctx.phase("Root cause");
-        const hyp = await ctx.agent(
-            `${brief}\n\nFailing repro: ${repro.command}\nOutput:\n${repro.output}\n\nList 2 to 5 candidate root causes, seeded by the code and the recent git history of the affected lines. For each, give one read-only check (a command, or a specific file and line to read) that would confirm or rule it out.`,
-            { agent: "Scout", model: REASONER, label: "hypotheses", schema: HYPOTHESES_SCHEMA }
+        const usable = (r) => (r?.hypotheses ?? []).filter((h) => h.claim.trim().length > 10 && h.check.trim().length > 5);
+        const hypothesisPrompt = `${brief}\n\nFailing repro: ${repro.command}\nOutput:\n${repro.output}\n\nRead the code under test and the recent git history of the affected lines. List 2 to 5 candidate root causes. For each, claim is one sentence naming the file and the mechanism, and check is one read-only command, or a specific file and line to read, that would confirm or rule it out. Neither field may be empty.`;
+        let hypotheses = usable(
+            await ctx.agent(hypothesisPrompt, { agent: "Scout", model: REASONER, label: "hypotheses", schema: HYPOTHESES_SCHEMA })
         );
-        const hypotheses = (hyp?.hypotheses ?? []).filter((h) => h.claim.trim().length > 10 && h.check.trim().length > 5);
+        if (hypotheses.length === 0) {
+            // Schema-valid but empty output repeats under the same agent, so retry once without it.
+            ctx.log("hypotheses came back empty; retrying once");
+            hypotheses = usable(
+                await ctx.agent(hypothesisPrompt, { model: REASONER, label: "hypotheses-retry", schema: HYPOTHESES_SCHEMA })
+            );
+        }
         const checks = await ctx.parallel(
             hypotheses.map((h, i) => async () => ({
                 ...h,
@@ -251,7 +260,7 @@ const bugFix = defineWorkflow({
                 ? `\n\nEarlier attempts failed. First undo any part of them that the current root cause doesn't justify:\n${rounds.map((r) => `- round ${r.round}: ${r.fix?.summary ?? "no result"}; check said: ${r.check?.reproOutput ?? "no result"}`).join("\n")}`
                 : "";
             const fix = await ctx.agent(
-                `${brief}\n\nRoot cause: ${rootCause.rootCause}\nFirst wrong place: ${rootCause.firstWrongPlace}\nEvidence: ${rootCause.evidence}\n\nMake the smallest change at the root cause that makes this repro pass: ${repro.command}${testCommand ? `\nThe project's tests must still pass: ${testCommand}` : ""}${history}\n\nDo not edit the repro. Do not commit or push.`,
+                `${brief}\n\nRoot cause: ${rootCause.rootCause}\nFirst wrong place: ${rootCause.firstWrongPlace}\nEvidence: ${rootCause.evidence}\n\nMake the smallest change at the root cause that makes this repro pass: ${repro.command}${testCommand ? `\nThe project's tests must still pass: ${testCommand}` : ""}${history}\n\nDo not edit the repro or any existing test. If the fix seems to require changing an existing test, stop and say why in summary instead. Do not commit or push.`,
                 { agent: "Builder", label: `fix:${round}`, schema: FIX_SCHEMA }
             );
             const check = await ctx.agent(
