@@ -36,4 +36,4 @@ Move anything a check would enforce better than prose to Backlog with the propos
 
 ## 4. Apply only after approval
 
-Show the full Accepted, Rejected and Backlog lists and wait for me to pick. Never auto-apply. After approval, make the edits in `~/dotfiles/copilot/` and commit them. Changes apply on this machine immediately through the links, and reach codespaces once they are on the dotfiles default branch.
+Show the full Accepted, Rejected and Backlog lists and wait for me to pick. Never auto-apply. After approval, make the edits in the dotfiles checkout that `~/.copilot/skills` links to (`$(dirname "$(readlink ~/.copilot/skills)")`) and commit them. Changes apply on this machine immediately through the links, and reach codespaces once they are on the dotfiles default branch.

@@ -1,28 +1,34 @@
-# Codespaces Dotfiles Template
+# dotfiles
 
-This repo is a starting point for using custom dotfiles (terminal / editor configuration) with GitHub Codespaces
+My shell, editor and Copilot CLI configuration.
 
-## How to use this repo
+## What's here
 
-In order to use this template, 
+- `.zshrc`: zsh with Oh My Zsh (autosuggestions and syntax highlighting plugins)
+- `.gitconfig`, `gitignore_global`: git aliases, colors and global ignores
+- `tmux.conf`, `vimrc`, `vim/`, `emacs`, `screenrc`: terminal and editor config
+- `copilot/`: Copilot CLI agents, skills, extensions and settings, linked into `~/.copilot`
 
-1. [create a new repo from this template](https://github.com/github/codespaces-dotfiles-template/generate). Make it public and name it `dotfiles`.
-1. Edit the files that you want to customize in `tmux.conf`, `vimrc`, etc.
-1. Push your changes to your `dotfiles` repo
-1. Create a new codespace, and see your new dotfiles
-1. 🍾
+## Install
 
-## What's in here?
+### Codespaces
 
-Just some blank configuration files for popular Text User Interface (TUI) apps that folks may want to use for development in codespaces and a script to put them in the right place.
+In GitHub settings under Codespaces, set this repo as your dotfiles repository. `install.sh` runs automatically when a codespace is created.
 
-This supports the following tools:
+### Local
 
-* Tmux
-* Screen
-* Vim
-* Emacs
+```sh
+git clone https://github.com/mattcosta7/dotfiles
+cd dotfiles
+./install.sh
+```
 
-## Vim Plugins
+The script is safe to rerun. Files are symlinked into `$HOME`, so edits in the checkout apply immediately. Existing files that would be replaced are moved to `~/.dotfiles-backup-<timestamp>`.
 
-This repo uses the wonderful [Vim Plug](https://github.com/junegunn/vim-plug) tool to manage vim plugins. If you'd like to add plugins, simply add them between the opening and closing plug statements in the `vimrc` file.
+## Machine-only settings
+
+Put tokens and per-machine settings in `~/.zshrc.local`. `.zshrc` sources it if present, and it is not tracked.
+
+## Requirements
+
+`git`, `curl` and `zsh`. `jq` is needed to merge the Copilot settings.

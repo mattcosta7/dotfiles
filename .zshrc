@@ -104,26 +104,13 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-alias memex="cd ~/workspace/memex"
-alias mem="memex"
 alias zshrc="code ~/.zshrc"
 alias ws="cd ~/workspace"
-alias dotcom="cd ~/workspace/github"
-alias github="dotcom"
-alias novelty-aardvarks="cd ~/workspace/novelty-aardvarks"
-alias na="novelty-aardvarks"
-alias chrome="open -a 'Google Chrome'"
 
-alias gh_notifs="chrome https://github.com/notifications"
-alias gh_memex="chrome https://github.com/github/memex"
-alias gh_dotcom="chrome https://github.com/github/github"
-alias gh_na="chrome https://github.com/github/novelty-aardvarks"
-alias gh_pt="chrome https://github.com/github/planning-tracking"
-alias gh_team_na="chrome https://github.com/orgs/github/teams/novelty-aardvarks"
-alias gh_team_pt="chrome https://github.com/orgs/github/teams/planning-tracking"
-alias gh_team_jakub="chrome https://github.com/orgs/github/teams/jakub-team"
-alias gh_team_productivity="chrome https://github.com/orgs/github/teams/productivity-tools"
-alias gh_team_eng="chrome https://github.com/orgs/github/teams/engineering"
+if [[ "$OSTYPE" == darwin* ]]; then
+  alias chrome="open -a 'Google Chrome'"
+  alias gh_notifs="chrome https://github.com/notifications"
+fi
 
 alias gfo="git fetch origin"
 alias gpom="git pull origin main"

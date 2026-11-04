@@ -1,24 +1,56 @@
-#!/bin/zsh
+#!/bin/sh
+# Links dotfiles into $HOME, installs Oh My Zsh and its plugins, and includes .gitconfig.
+# Safe to rerun. Existing real files are moved to ~/.dotfiles-backup-<timestamp>.
+set -eu
 
-exec > >(tee -i $HOME/dotfiles_install.log)
-exec 2>&1
-set -x
+src="$(cd "$(dirname "$0")" && pwd)"
+backup="$HOME/.dotfiles-backup-$(date +%Y%m%d%H%M%S)"
 
-ln -s $(pwd)/tmux.conf $HOME/.tmux.conf
-ln -s $(pwd)/vimrc $HOME/.vimrc
-ln -s $(pwd)/vim $HOME/.vim
-ln -s $(pwd)/emacs $HOME/.emacs
-ln -s $(pwd)/screenrc $HOME/.screenrc
-sh $(pwd)/copilot/install.sh
+link() {
+    target="$2"
+    if [ -L "$target" ]; then
+        :
+    elif [ -e "$target" ]; then
+        mkdir -p "$backup"
+        mv "$target" "$backup/"
+        echo "dotfiles: moved existing $target to $backup/"
+    fi
+    ln -sfn "$1" "$target"
+}
 
-# Oh My Zsh!
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+if ! command -v zsh >/dev/null 2>&1; then
+    echo "dotfiles: zsh not found, install it to use the shell config"
 fi
 
-cat $(pwd)/.gitconfig >> "$HOME/.gitconfig"
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+# Before linking .zshrc, so the installer can't replace it.
+ZSH="${ZSH:-$HOME/.oh-my-zsh}"
+if [ ! -d "$ZSH" ]; then
+    RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+fi
 
-cp -f $(pwd)/.zshrc $HOME
-source "$HOME/.zshrc"
+ZSH_CUSTOM="${ZSH_CUSTOM:-$ZSH/custom}"
+for repo in zsh-users/zsh-autosuggestions zsh-users/zsh-syntax-highlighting; do
+    plugin="$ZSH_CUSTOM/plugins/${repo#*/}"
+    if [ ! -d "$plugin" ]; then
+        git clone --depth 1 "https://github.com/$repo.git" "$plugin"
+    fi
+done
+
+link "$src/.zshrc" "$HOME/.zshrc"
+link "$src/tmux.conf" "$HOME/.tmux.conf"
+link "$src/vimrc" "$HOME/.vimrc"
+link "$src/vim" "$HOME/.vim"
+link "$src/emacs" "$HOME/.emacs"
+link "$src/screenrc" "$HOME/.screenrc"
+link "$src/gitignore_global" "$HOME/.gitignore_global"
+
+if [ -z "$(git config --global --get core.excludesfile || true)" ]; then
+    git config --global core.excludesfile "$HOME/.gitignore_global"
+fi
+
+# Include rather than copy, so Codespaces' own ~/.gitconfig (credential helper, user) stays intact.
+if ! git config --global --get-all include.path | grep -qxF "$src/.gitconfig"; then
+    git config --global --add include.path "$src/.gitconfig"
+fi
+
+sh "$src/copilot/install.sh"
