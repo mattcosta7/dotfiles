@@ -37,6 +37,11 @@ Recall, setup, reflection, correction, decision logs, prompt rewriting and verif
 | Documentation structure | `documentation` |
 | Web compatibility and code-quality audits | `best-practices` |
 | Performance comparisons | `benchmark-checklist` plus the matching performance skill |
+| Vite configuration, plugins, HMR or builds | `vite` |
+| Vitest tests, mocks, coverage or configuration | `vitest`, only when Vitest is the installed or requested runner |
+| Playwright tests or browser automation | `playwright-cli`; prefer available browser MCP tools for interactive inspection |
+| Isolated Playwright component tests | `playwright-component-testing`, when requested or already used by the project |
+| Inspect a Playwright trace archive | `playwright-trace` |
 | Resume prior work | `recall`, when requested |
 | Explain code or a subsystem | `teach` |
 | Make a task brief more rigorous | `sharpen`, when requested |
@@ -53,6 +58,16 @@ Recall, setup, reflection, correction, decision logs, prompt rewriting and verif
 | Explicit pre-merge verification | `ship-check` |
 
 Use the matching installed domain skill for framework-specific work. Do not invent a missing skill or silently replace it with an unrelated one.
+
+### Frontend compatibility
+
+Inspect installed framework and test-runner versions, scripts, and existing patterns before applying a skill. The imported Vite and Vitest references describe specific upstream versions, including beta APIs; they are not instructions to upgrade a project or replace its runner.
+
+Check installed Playwright capabilities before using the gallery `mount` fixture, `reuseContext`, or trace CLI commands. Preserve existing component-test infrastructure unless a migration is requested. Use the existing runner or Trace Viewer when a documented capability is unavailable. Reuse project-local tooling before considering a CLI installation.
+
+For cross-browser requirements, exercise the requested flows in Chromium, Firefox, and WebKit, or report which engines are blocked. A passing Chromium run is not cross-browser evidence. Close only browser sessions and processes owned by the task; never use global close-all or kill-all commands.
+
+Follow the product's existing design system and component conventions. Do not introduce a new visual direction during routine implementation or maintenance.
 
 ## Delegate sparingly
 

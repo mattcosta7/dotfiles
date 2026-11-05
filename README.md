@@ -45,6 +45,16 @@ Request-only skills remain loadable in Copilot prompt mode. Their instructions a
 
 These are maintained local adaptations, not entries in `copilot/skills.lock`. `copilot/sync-skills.sh` refreshes the separately vendored skills. Attribution is in `copilot/NOTICE-pstack-LICENSE.txt`.
 
+The frontend collection also includes Anthony Fu's `vite` and `vitest`, plus Microsoft's `playwright-cli`, `playwright-component-testing` and `playwright-trace`. Use the installed project's versions and capabilities, not the reference snapshot's version, to choose APIs. Existing React, Rstack, accessibility and browser-performance skills remain in place.
+
+`copilot/skill-sources.txt` supports explicit include lists so these sources do not import unrelated skills. Refresh only those sources without updating the rest:
+
+```sh
+sh copilot/sync-skills.sh antfu/skills microsoft/playwright
+```
+
+Omit the repository arguments to refresh all sources. Each refresh records the fetched commits in `copilot/skills.lock`; review the diff before committing.
+
 ## Requirements
 
 `git`, `curl` and `zsh`. `jq` is needed to merge the Copilot settings.
