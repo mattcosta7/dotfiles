@@ -1,5 +1,5 @@
 import { defineWorkflow } from "@github/copilot-sdk/extension";
-import { MODELS, bool, checkAcceptance, obj, repoRoot, runInterrogation, sh, str, strList, worktreeDir } from "./lib.mjs";
+import { MODELS, WORKTREE_ADD_TIMEOUT, bool, checkAcceptance, obj, repoRoot, runInterrogation, sh, str, strList, userCommand, worktreeDir } from "./lib.mjs";
 
 const CRITERIA_LIST_SCHEMA = obj({ criteria: { type: "array", items: obj({ text: str, inferred: bool }) } });
 
@@ -7,7 +7,7 @@ const resolveTarget = async (args, root) => {
     if (args.pr !== undefined && args.pr !== null && `${args.pr}`.trim()) {
         const r = await sh("gh", ["pr", "view", `${args.pr}`, "--json", "number,url,headRefOid,baseRefName,body,title"], root);
         if (r.code !== 0) throw new Error(`gh pr view ${args.pr} failed: ${r.out}`);
-        const pr = JSON.parse(r.out);
+        const pr = JSON.parse(r.stdout);
         await sh("git", ["fetch", "-q", "origin", `pull/${pr.number}/head`, pr.baseRefName], root);
         return { kind: "pr", id: `pr-${pr.number}`, sha: pr.headRefOid, base: `origin/${pr.baseRefName}`, title: pr.title, body: pr.body ?? "", url: pr.url };
     }
@@ -30,8 +30,9 @@ export const shipCheck = defineWorkflow({
         name: "ship-check",
         description:
             "Independent pre-merge verdict (PASS, PASS+NOTES, FAIL, or STALE) for one exact commit, checked out in its own worktree and run the way a user would. Never merges or comments. " +
-            "args: { pr?: number|string, ref?: string, base?: string, description?: string, criteria?: string[], testCommand?: string, risky?: boolean, repo?: string } " +
-            "Give pr for a GitHub pull request, or ref (and optionally base and description) for a local branch. risky adds an interrogation.",
+            "args: { pr?: number|string, ref?: string, base?: string, description?: string, criteria?: string[], testCommand?: string, setupCommand?: string, risky?: boolean, repo?: string } " +
+            "Give pr for a GitHub pull request, or ref (and optionally base and description) for a local branch. risky adds an interrogation. " +
+            "setupCommand runs in the new worktree before verification, for repos whose fresh checkout needs generated files.",
         phases: [{ title: "Pin" }, { title: "Criteria" }, { title: "Verify" }, { title: "Verdict" }],
         argsSchema: {
             type: "object",
@@ -42,6 +43,7 @@ export const shipCheck = defineWorkflow({
                 description: str,
                 criteria: strList,
                 testCommand: str,
+                setupCommand: str,
                 risky: bool,
                 repo: str,
             },
@@ -57,11 +59,17 @@ export const shipCheck = defineWorkflow({
         const short = target.sha.slice(0, 7);
         const wt = await worktreeDir(root, `shipcheck-${target.id}-${short}`);
         // Not journaled: cleanup removes the worktree, so a resumed run must recreate it.
-        const add = await sh("git", ["worktree", "add", "--detach", wt, target.sha], root);
+        const add = await sh("git", ["worktree", "add", "--detach", wt, target.sha], root, WORKTREE_ADD_TIMEOUT);
         if (add.code !== 0 && !/already exists/.test(add.out)) throw new Error(`could not create worktree ${wt}: ${add.out}`);
         ctx.log(`checking ${target.sha} in ${wt}`);
 
         try {
+            if (args.setupCommand) {
+                const setup = await userCommand(args.setupCommand, wt);
+                if (setup.code !== 0) throw new Error(`setup command failed in ${wt}: ${setup.out}`);
+                ctx.log(`setup command finished: ${args.setupCommand}`);
+            }
+
             const diffStat = (await sh("git", ["diff", "--stat", `${target.base}...${target.sha}`], root)).out;
 
             ctx.phase("Criteria");

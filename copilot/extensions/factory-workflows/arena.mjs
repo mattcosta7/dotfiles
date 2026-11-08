@@ -1,5 +1,5 @@
 import { defineWorkflow } from "@github/copilot-sdk/extension";
-import { MODELS, bool, commitAll, int, obj, oneOf, repoRoot, sh, str, strList, userCommand, worktreeDir } from "./lib.mjs";
+import { MODELS, WORKTREE_ADD_TIMEOUT, bool, commitAll, int, obj, oneOf, repoRoot, sh, str, strList, userCommand, worktreeDir } from "./lib.mjs";
 
 const RUBRIC_SCHEMA = obj({ rubric: strList });
 const CANDIDATE_SCHEMA = obj({ rationale: str, rejectedAlternatives: strList });
@@ -69,7 +69,7 @@ export const arena = defineWorkflow({
             for (const [i, model] of models.entries()) {
                 const wt = await worktreeDir(root, `arena-${slug}-${i}`);
                 const branch = `arena/${slug}-${i}`;
-                const add = await sh("git", ["worktree", "add", "-b", branch, wt, base], root);
+                const add = await sh("git", ["worktree", "add", "-b", branch, wt, base], root, WORKTREE_ADD_TIMEOUT);
                 if (add.code !== 0 && !/already exists/.test(add.out)) throw new Error(`could not create worktree ${wt}: ${add.out}`);
                 candidates.push({ index: i, model, wt, branch });
             }

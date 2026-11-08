@@ -28,9 +28,13 @@ const VERDICT_SCHEMA = obj({ reproduced: bool, observed: str, reason: str });
 export const sh = (cmd, args, cwd, timeout = 600_000) =>
     new Promise((resolve) =>
         execFile(cmd, args, { cwd, timeout, maxBuffer: 50 * 1024 * 1024 }, (err, stdout, stderr) =>
-            resolve({ code: err ? (typeof err.code === "number" ? err.code : 1) : 0, out: `${stdout}${stderr}`.slice(-8000) })
+            // `out` is trimmed for error messages; `stdout` is kept whole for callers that parse it.
+            resolve({ code: err ? (typeof err.code === "number" ? err.code : 1) : 0, out: `${stdout}${stderr}`.slice(-8000), stdout })
         )
     );
+
+/** Checking out a large repo, such as one that commits node_modules, can take well over 10 minutes. */
+export const WORKTREE_ADD_TIMEOUT = 3_600_000;
 
 /** Runs a command the user supplied in the workflow args, such as a test command. */
 export const userCommand = (command, cwd) => sh("sh", ["-c", command], cwd, 1_800_000);
