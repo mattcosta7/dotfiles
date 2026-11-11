@@ -45,3 +45,5 @@ antfu/skills f63e9ec7bc85f67364b6596c2d29da87e83ce445 vitest
 microsoft/playwright 84e2bdcaa5a6e4a9e8afcbe8b1bca4ff8a8cb69a playwright-cli
 microsoft/playwright 84e2bdcaa5a6e4a9e8afcbe8b1bca4ff8a8cb69a playwright-component-testing
 microsoft/playwright 84e2bdcaa5a6e4a9e8afcbe8b1bca4ff8a8cb69a playwright-trace
+GoogleChrome/modern-web-guidance 4dd968349e54ca45a05dd5c818fb035c9054b022 chrome-extensions
+GoogleChrome/modern-web-guidance 4dd968349e54ca45a05dd5c818fb035c9054b022 modern-web-guidance

@@ -8,3 +8,4 @@ ChromeDevTools/chrome-devtools-mcp skills
 vercel-labs/agent-skills skills deploy-to-vercel,vercel-cli-with-tokens,vercel-optimize,web-design-guidelines,writing-guidelines,react-native-skills
 antfu/skills skills - vite,vitest
 microsoft/playwright packages/playwright-core/src/tools/skills - playwright-cli,playwright-component-testing,playwright-trace
+GoogleChrome/modern-web-guidance skills - modern-web-guidance,chrome-extensions
