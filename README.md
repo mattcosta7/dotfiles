@@ -47,10 +47,12 @@ These are maintained local adaptations, not entries in `copilot/skills.lock`. `c
 
 The frontend collection also includes Anthony Fu's `vite` and `vitest`, plus Microsoft's `playwright-cli`, `playwright-component-testing` and `playwright-trace`. Use the installed project's versions and capabilities, not the reference snapshot's version, to choose APIs. Existing React, Rstack, accessibility and browser-performance skills remain in place.
 
+Chrome's [Modern Web Guidance](https://github.com/GoogleChrome/modern-web-guidance) adds `modern-web-guidance` and `chrome-extensions`. `modern-web-guidance` looks up current HTML, CSS and client-side JS patterns with `npx modern-web-guidance@latest search` and `retrieve`, so it needs Node and network access to npm on first use.
+
 `copilot/skill-sources.txt` supports explicit include lists so these sources do not import unrelated skills. Refresh only those sources without updating the rest:
 
 ```sh
-sh copilot/sync-skills.sh antfu/skills microsoft/playwright
+sh copilot/sync-skills.sh antfu/skills microsoft/playwright GoogleChrome/modern-web-guidance
 ```
 
 Omit the repository arguments to refresh all sources. Each refresh records the fetched commits in `copilot/skills.lock`; review the diff before committing.
