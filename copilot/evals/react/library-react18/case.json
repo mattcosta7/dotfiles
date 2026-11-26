@@ -1,0 +1,5 @@
+{
+  "tier": "gate",
+  "matrix": ["18.3.1", "19.3.1"],
+  "pitfall": "ref as a prop only works in React 19; a library whose peer range includes 18 must keep forwardRef."
+}

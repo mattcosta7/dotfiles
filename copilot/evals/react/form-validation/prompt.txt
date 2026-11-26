@@ -1,0 +1,1 @@
+Move ProfileForm (src/ProfileForm.jsx) to a form Action with useActionState. Keep server validation errors visible. Keep the component's props and the save({ name }) contract as they are.

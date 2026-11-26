@@ -1,0 +1,17 @@
+{
+  "skill": "react-current-apis",
+  "sentinels": [
+    {
+      "url": "https://react.dev/learn/react-compiler/introduction.md",
+      "phrase": "removing it can change compilation output"
+    },
+    {
+      "url": "https://react.dev/reference/react/useActionState.md",
+      "phrase": "preserving form values"
+    },
+    {
+      "url": "https://react.dev/reference/react/use.md",
+      "phrase": "must be cached"
+    }
+  ]
+}

@@ -1,12 +1,13 @@
 #!/bin/sh
 # Factory test suite: runs workflows and hooks headless against throwaway fixtures and checks real outcomes.
 # Usage: [REPEAT=N] sh copilot/evals/run.sh [case ...]
-# Cases: units layout cf-layout models interrogate-planted interrogate-clean bug-fix hook-force-push (default),
-#        bug-fix-stuck ship-check-pass ship-check-fail arena feature (opt-in, slow; or use "all")
+# Cases: units layout cf-layout models interrogate-planted interrogate-clean bug-fix hook-force-push react-oracles
+#        react-canary (default), bug-fix-stuck ship-check-pass ship-check-fail arena feature (opt-in, slow; or "all"),
+#        react react-research (opt-in model runs for the React skills; see react/README.md)
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-DEFAULT_CASES="units layout cf-layout models interrogate-planted interrogate-clean bug-fix hook-force-push"
+DEFAULT_CASES="units layout cf-layout models interrogate-planted interrogate-clean bug-fix hook-force-push react-oracles react-canary"
 CASES="${*:-$DEFAULT_CASES}"
 [ "$CASES" = all ] && CASES="$DEFAULT_CASES bug-fix-stuck ship-check-pass ship-check-fail arena feature"
 REPEAT="${REPEAT:-1}"
@@ -25,6 +26,8 @@ new_repo() {
 }
 
 record() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" >> "$RESULTS"; }
+
+. "$HERE/react/cases.sh"
 
 run_workflow() {
     name="$1" args="$2" out="$3"
@@ -320,6 +323,10 @@ while [ "$RUN" -le "$REPEAT" ]; do
             arena) case_arena ;;
             feature) case_feature ;;
             hook-force-push) case_hook_force_push ;;
+            react-oracles) case_react_oracles ;;
+            react-canary) case_react_canary ;;
+            react) case_react ;;
+            react-research) case_react_research ;;
             *) echo "unknown case: $c" >&2 ;;
         esac
     done
@@ -327,11 +334,11 @@ while [ "$RUN" -le "$REPEAT" ]; do
 done
 
 echo
-printf '%-22s %-5s %6s  %s\n' CASE RESULT SECS DETAIL
-awk -F'\t' '{printf "%-22s %-5s %6s  %s\n", $1, $2, $3, $4}' "$RESULTS"
+printf '%-44s %-5s %6s  %s\n' CASE RESULT SECS DETAIL
+awk -F'\t' '{printf "%-44s %-5s %6s  %s\n", $1, $2, $3, $4}' "$RESULTS"
 if [ "$REPEAT" -gt 1 ]; then
     echo
-    awk -F'\t' '{n[$1]++; if ($2=="PASS") p[$1]++} END {for (c in n) printf "%-22s %d/%d passed\n", c, p[c], n[c]}' "$RESULTS" | sort
+    awk -F'\t' '{n[$1]++; if ($2=="PASS") p[$1]++} END {for (c in n) printf "%-44s %d/%d passed\n", c, p[c], n[c]}' "$RESULTS" | sort
 fi
 echo "Artifacts: $WORK"
 ! grep -q "	FAIL	" "$RESULTS"

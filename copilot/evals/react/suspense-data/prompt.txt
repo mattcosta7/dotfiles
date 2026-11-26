@@ -1,0 +1,1 @@
+Use Suspense for loading in CommentList (src/CommentList.jsx). Keep App's search box and post picker working, and keep fetchComments in src/api.js as the way comments are loaded.

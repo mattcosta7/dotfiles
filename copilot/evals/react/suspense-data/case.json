@@ -1,0 +1,4 @@
+{
+  "tier": "core",
+  "pitfall": "use() needs a cached Promise: one created inside the Suspense boundary never resolves into content, and one created in a re-rendering parent refetches every render."
+}

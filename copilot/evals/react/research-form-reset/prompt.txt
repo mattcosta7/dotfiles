@@ -1,0 +1,8 @@
+In src/SettingsForm.jsx, the Action returns a validation error message instead of throwing. With the React version installed in this project, after the Action finishes with that error, what happens to the text the user typed into the uncontrolled displayName input?
+
+A) React resets the form, so the input is cleared even though the Action returned an error
+B) The input keeps its value, because React only resets the form when the Action succeeds
+C) The input keeps its value, because React never resets forms automatically
+D) The input is cleared only if the Action calls requestFormReset
+
+Explain briefly, cite your sources, and end your reply with a line of the form `Answer: <letter>`.

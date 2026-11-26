@@ -1,0 +1,1 @@
+{ "tier": "research", "answer": "A", "fact": "On 19.3.1, separate transitions are independent since facebook/react#37290 (enableParallelTransitions) (measured: facts/transitions.test.mjs). react.dev's useTransition caveat still says they are batched." }
