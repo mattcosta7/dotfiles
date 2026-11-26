@@ -7,7 +7,7 @@ description: "Researches React behavior from React's own tests, source, feature 
 
 Adapted from the React team's [react-expert skill](https://github.com/reactjs/react.dev/blob/c3c956bef083142ea94dd04068b389195db98dad/.claude/skills/react-expert/SKILL.md) in reactjs/react.dev (CC BY 4.0, <https://creativecommons.org/licenses/by/4.0/>). See [NOTICE-react-dev-LICENSE.txt](../../NOTICE-react-dev-LICENSE.txt).
 
-Changes from the source: researches the tag for the project's installed React version instead of `main`; keeps the clone in `~/.cache/react-expert`, outside the working repo, instead of `.claude/react`; writes the report to the session folder instead of `.claude/research/`; uses 3 or 4 Copilot `explore` agents instead of 6 Claude `Task` agents, folding git history and issues into the PR agent; adds a feature-flag check and a direct answer; runs only when invoked.
+Changes from the source: researches the tag for the project's installed React version instead of `main`; keeps the clone in `~/.cache/react-expert`, outside the working repo, instead of `.claude/react`; writes the report to the session folder instead of `.claude/research/`; uses 3 or 4 Copilot `explore` agents instead of 6 Claude `Task` agents, folding git history and issues into the PR agent; adds a feature-flag check, a required runtime reproduction and a direct answer; runs only when invoked.
 
 Run this skill only when the user asks for it, or when a question about React behavior is still open after reading react.dev and running a small test. It costs several agents and a large clone.
 
@@ -63,11 +63,24 @@ Call the `task` tool with `agent_type: "explore"` once per agent, all in the sam
 
 If an `explore` agent can't run `gh` or `git`, run those commands yourself.
 
-### 4. Answer
+### 4. Reproduce runtime behavior
 
-Lead with the direct answer to the user's question for this React version. Then give the evidence. Cite every claim with a `path:line` at the tag, a PR or issue URL, or a commit. Do not add claims from memory, and do not present invented code as an example from React; quote tests or source instead. If the sources don't settle the question, say what is still unknown.
+If the question is about what happens at runtime (what renders, when an update commits, how often something runs, whether it throws), you must measure it before answering. Reading React's source is not enough: it is easy to miss a code path and reach a confident, wrong answer.
 
-### 5. Save the report
+- Write the smallest reproduction and run it against the project's installed React: `node --test` with `global-jsdom` or `jsdom` if the project has one, or `react-dom/server` for server rendering. If nothing can run it, say the answer is unverified.
+- Keep the reproduction out of the project. Create it with your file-writing tool in the session folder's `files/` (or a temp dir), load the project's packages with `createRequire('<project>/package.json')` from `node:module`, and run it with `node --test --test-force-exit --test-timeout=30000 <file>` so a render that never settles can't hang the session.
+- Model async work the way it happens in the app: a network response arrives in a later task (`setTimeout`), not as an already-resolved Promise. React treats the two differently.
+- Poll in short, separate `act()` calls instead of one long wait: a long `act()` delays Suspense commits. Under `global-jsdom`, set `globalThis.FormData = window.FormData` before testing form Actions.
+- If the measurement disagrees with what you inferred from the source, the measurement wins. Say so, then find what you misread.
+
+Good: "Measured on the installed version: in Strict Mode the Effect's setup ran twice before the first paint (test below). `<path>:<line>` explains why."
+Bad: "Inferred from `ReactFiberCommitWork.js`: the Effect runs once." (nothing was run)
+
+### 5. Answer
+
+Lead with the direct answer to the user's question for this React version, and say whether it was measured or inferred. Then give the evidence. Cite every claim with a `path:line` at the tag, a PR or issue URL, or a commit. Do not add claims from memory, and do not present invented code as an example from React; quote tests or source instead. If the sources don't settle the question, say what is still unknown.
+
+### 6. Save the report
 
 Write the report to `files/react-research-<topic>.md` in the session folder named in your session context (spaces in the topic become hyphens). If there is no session folder, put the report in your reply. Never write it into the project.
 
@@ -90,6 +103,7 @@ Write the report to `files/react-research-<topic>.md` in the session folder name
 
 - [ ] The tag matches the project's installed (or lowest supported) React version, and its commit is recorded.
 - [ ] The agents ran in parallel.
+- [ ] Runtime behavior was measured against the installed React, or the answer says it is unverified.
 - [ ] Every claim has a `path:line`, PR, issue or commit.
 - [ ] Feature flags that gate the behavior were checked at this tag.
 - [ ] `git status` in the project is unchanged.

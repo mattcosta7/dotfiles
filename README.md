@@ -45,6 +45,10 @@ Request-only skills remain loadable in Copilot prompt mode. Their instructions a
 
 These are maintained local adaptations, not entries in `copilot/skills.lock`. `copilot/sync-skills.sh` refreshes the separately vendored skills. Attribution is in `copilot/NOTICE-pstack-LICENSE.txt`.
 
+`react-expert` is adapted from the React team's skill in [reactjs/react.dev](https://github.com/reactjs/react.dev/blob/c3c956bef083142ea94dd04068b389195db98dad/.claude/skills/react-expert/SKILL.md) (CC BY 4.0; license in `copilot/NOTICE-react-dev-LICENSE.txt`, changes listed in the skill). It researches React's tests, source, feature flags and PRs at the tag for the project's installed React, keeps its clone in `~/.cache/react-expert`, and measures runtime behavior before answering. Invoke it explicitly. Like the pstack skills, it is a local adaptation outside `copilot/skills.lock`.
+
+`copilot/evals/react/` holds the evals that decided which React skills to keep: synthetic fixtures with hidden oracle tests, a with/without readout following `skill-optimizer`, and a canary against react.dev and the published packages. A `react-current-apis` draft stays there as an eval arm only; the evals did not justify installing it. See [its README](copilot/evals/react/README.md).
+
 The frontend collection also includes Anthony Fu's `vite` and `vitest`, plus Microsoft's `playwright-cli`, `playwright-component-testing` and `playwright-trace`. Use the installed project's versions and capabilities, not the reference snapshot's version, to choose APIs. Existing React, Rstack, accessibility and browser-performance skills remain in place.
 
 Chrome's [Modern Web Guidance](https://github.com/GoogleChrome/modern-web-guidance) adds `modern-web-guidance` and `chrome-extensions`. `modern-web-guidance` looks up current HTML, CSS and client-side JS patterns with `npx modern-web-guidance@latest search` and `retrieve`, so it needs Node and network access to npm on first use.
