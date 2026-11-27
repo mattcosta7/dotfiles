@@ -1,0 +1,4 @@
+{
+  "tier": "gate",
+  "pitfall": "Repository conventions (here, React Query for data) outrank generic React guidance such as use() with Suspense."
+}

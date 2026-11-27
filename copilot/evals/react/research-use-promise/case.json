@@ -1,0 +1,1 @@
+{ "tier": "research", "answer": "B", "fact": "A Promise created inside the same Suspense boundary never resolves into content and is refetched (measured: facts/use-promise.test.mjs)." }

@@ -1,0 +1,1 @@
+Add a text filter to List (src/List.jsx): an input labeled "Filter" that shows only the items whose label contains the typed text, ignoring case. The React Compiler is on in this repo.

@@ -1,0 +1,4 @@
+{
+  "tier": "core",
+  "pitfall": "A <form> Action resets the form after it runs, even when it returns a validation error."
+}

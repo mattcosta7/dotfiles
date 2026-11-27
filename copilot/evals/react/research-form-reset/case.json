@@ -1,0 +1,1 @@
+{ "tier": "research", "answer": "A", "fact": "A form Action resets uncontrolled inputs after it finishes, even when it returns an error (measured: facts/form-reset.test.mjs)." }

@@ -1,0 +1,8 @@
+In src/Comments.jsx, CommentList calls fetchComments(postId) during render and passes the new Promise to use(). There is no cache. With the React version installed in this project, what happens in the browser when Comments first mounts and the fetch succeeds?
+
+A) The comments render after one fetch
+B) It stays on the Suspense fallback and keeps refetching, so the comments never render
+C) React throws an error to the nearest Error Boundary on the first render
+D) The comments render, then refetch only when the parent re-renders
+
+Explain briefly, cite your sources, and end your reply with a line of the form `Answer: <letter>`.

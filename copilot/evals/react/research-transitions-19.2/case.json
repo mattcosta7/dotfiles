@@ -1,0 +1,1 @@
+{ "tier": "research", "answer": "B", "fact": "On 19.2.9, separate transitions are entangled: the second update waits for the suspended first (measured: facts/transitions.test.mjs). react.dev's useTransition caveat still says they are batched." }

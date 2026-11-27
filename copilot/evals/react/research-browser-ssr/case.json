@@ -1,0 +1,1 @@
+{ "tier": "research", "answer": "B", "fact": "use(browser()) outside a Suspense boundary makes the server render fail (measured: facts/browser.test.mjs; react.dev browser caveats; facebook/react#37143)." }

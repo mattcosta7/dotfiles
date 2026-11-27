@@ -1,0 +1,5 @@
+{
+  "tier": "activation",
+  "forbidSkills": ["react-current-apis", "react-expert"],
+  "pitfall": "A React skill should not load for routine work in a project without React."
+}

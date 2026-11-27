@@ -1,0 +1,8 @@
+src/Editor.jsx calls use(browser()) and the page renders <Editor /> with no <Suspense> boundary anywhere above it. With the React version installed in this project, what happens when the page is server-rendered?
+
+A) The server renders RichTextArea's HTML normally
+B) The server render fails because client rendering was requested outside a Suspense boundary
+C) The server leaves an empty placeholder and the browser renders the editor without any error
+D) use(browser()) is a no-op on the server
+
+Explain briefly, cite your sources, and end your reply with a line of the form `Answer: <letter>`.

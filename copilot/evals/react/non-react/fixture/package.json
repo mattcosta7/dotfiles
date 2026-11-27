@@ -1,0 +1,7 @@
+{
+  "name": "wordcount",
+  "version": "1.2.0",
+  "type": "module",
+  "bin": { "wordcount": "bin/wordcount.js" },
+  "scripts": { "test": "node --test" }
+}

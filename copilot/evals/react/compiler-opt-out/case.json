@@ -1,0 +1,4 @@
+{
+  "tier": "gate",
+  "pitfall": "The compiler skips files on the opt-out list, so manual memoization there still matters."
+}

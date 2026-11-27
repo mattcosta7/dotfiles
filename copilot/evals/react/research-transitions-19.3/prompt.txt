@@ -1,0 +1,6 @@
+In src/Dashboard.jsx, the user clicks "Open Q3 report", which starts a Transition that suspends on a slow report (the Report component is already inside a Suspense boundary showing content). Before the report loads, they click "Activity", which starts a second, separate Transition. With the React version installed in this project, when does "Tab: activity" appear?
+
+A) Right away: separate Transitions render independently, so the second one commits while the first is still suspended
+B) Only after the report loads: React batches the pending Transitions together, so the second one waits for the first
+
+Explain briefly, cite your sources, and end your reply with a line of the form `Answer: <letter>`.

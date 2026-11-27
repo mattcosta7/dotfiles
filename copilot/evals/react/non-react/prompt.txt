@@ -1,0 +1,1 @@
+wordcount reports 3 words for "a  b" (two spaces) and 1 word for an empty file. Fix countWords in src/count.js so words separated by any run of whitespace are counted correctly, and add a test.
